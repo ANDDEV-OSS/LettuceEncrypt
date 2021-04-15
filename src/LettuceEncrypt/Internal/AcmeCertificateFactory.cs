@@ -380,6 +380,23 @@ namespace LettuceEncrypt.Internal
             _logger.LogAcmeAction("NewCertificate");
 
             var pfxBuilder = acmeCert.ToPfx(privateKey);
+
+            // if we're using staging and there's a download url - add staging root cert to the pfx chain
+            if (_options.Value.UseStagingServer && !string.IsNullOrWhiteSpace(_options.Value.StagingRootCertificateDownloadUrl?.OriginalString))
+            {
+                _logger.LogDebug("Downloading staging root cert from {url}", _options.Value.StagingRootCertificateDownloadUrl);
+
+                using var webClient = new System.Net.WebClient();
+                var rootPemFile = webClient.DownloadString(_options.Value.StagingRootCertificateDownloadUrl?.OriginalString);
+
+                // hack for netcore3.1 - for net5 use X509Certificate2.CreateFromPem
+                var qExtractPemBase64 = rootPemFile.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).Where(x => !x.StartsWith("--") || !x.EndsWith("--"));
+                string rootPemBase64 = string.Join(null, qExtractPemBase64);
+                var rootCert = new X509Certificate2(Convert.FromBase64String(rootPemBase64));
+
+                pfxBuilder.AddIssuers(rootCert.RawData);
+            }
+
             var pfx = pfxBuilder.Build("HTTPS Cert - " + _options.Value.DomainNames, string.Empty);
             return new X509Certificate2(pfx, string.Empty, X509KeyStorageFlags.Exportable);
         }

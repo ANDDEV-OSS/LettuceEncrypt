@@ -71,5 +71,10 @@ namespace LettuceEncrypt
         /// The asymmetric algorithm used for generating a private key for certificates: RS256, ES256, ES384, ES512
         /// </summary>
         public KeyAlgorithm KeyAlgorithm { get; set; } = KeyAlgorithm.ES256;
+
+        /// <summary>
+        /// The download location for the staging root certificate
+        /// </summary>
+        public Uri? StagingRootCertificateDownloadUrl { get; set; } = new Uri("https://letsencrypt.org/certs/staging/letsencrypt-stg-root-x1.pem");
     }
 }
